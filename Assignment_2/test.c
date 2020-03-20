@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define N 2000010
 #define mb 1024 * 1024
@@ -20,6 +21,7 @@ void testBroadcast(int rank, int buf)
 
 void testScatterGather(int rank, int size)
 {
+    srand(time(0));
     int *globalData = NULL, localData, temp;
     if (rank == 0)
     {
@@ -55,6 +57,149 @@ void testScatterGather(int rank, int size)
         free(globalData);
 }
 
+void testAllGather(int rank, int size)
+{
+    srand(time(0));
+    int *globalData = NULL, *localData = NULL, temp;
+    globalData = malloc(size * sizeof(int));
+    localData = malloc(size * sizeof(int));
+    for (int i = 0; i < size; i++)
+    {
+        globalData[i] = 0;
+        localData[i] = 0;
+    }
+    if (rank == 0)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            globalData[i] = rand() % 20;
+        }
+    }
+
+    printf("\nBefore Allgather, globalData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", globalData[i]);
+    }
+    printf("\nBefore Allgather, localData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", localData[i]);
+    }
+
+    MPI_Allgather(globalData, size, MPI_INT, localData, size, MPI_INT, MPI_COMM_WORLD);
+
+    // if (rank == 1)
+    // {
+    //     printf("P1 received:");
+    //     for (int i = 0; i < size; i++)
+    //         printf(" %d", localData[i]);
+    //     printf("\n");
+    // }
+    printf("\nAfter Allgather, globalData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", globalData[i]);
+    }
+    printf("\nAfter Allgather, localData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", localData[i]);
+    }
+    printf("\n");
+    free(globalData);
+    free(localData);
+}
+
+void testAllToAll(int rank, int size)
+{
+    srand(time(0));
+    int *globalData = NULL, *localData = NULL, temp;
+    globalData = malloc(size * sizeof(int));
+    localData = malloc(size * sizeof(int));
+    for (int i = 0; i < size; i++)
+    {
+        globalData[i] = 0;
+        localData[i] = 0;
+    }
+    if (rank == 0)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            globalData[i] = rand() % 20;
+        }
+    }
+
+    printf("\nBefore globalData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", globalData[i]);
+    }
+    printf("\nBefore localData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", localData[i]);
+    }
+
+    MPI_Alltoall(globalData, size, MPI_INT, localData, size, MPI_INT, MPI_COMM_WORLD);
+
+    // if (rank == 1)
+    // {
+    //     printf("P1 received:");
+    //     for (int i = 0; i < size; i++)
+    //         printf(" %d", localData[i]);
+    //     printf("\n");
+    // }
+    printf("\nAfter globalData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", globalData[i]);
+    }
+    printf("\nAfter localData: P %d:", rank);
+    for (int i = 0; i < size; i++)
+    {
+        printf(" %d", localData[i]);
+    }
+    printf("\n");
+    free(globalData);
+    free(localData);
+}
+
+void testReduce(int rank, int size)
+{
+    srand(time(0));
+    int *globalData = NULL, *localData = NULL, temp, localSum = 0, globalSum = 0;
+    globalData = malloc(size * sizeof(int));
+    localData = malloc(size * sizeof(int));
+    for (int i = 0; i < size; i++)
+    {
+        globalData[i] = 0;
+        localData[i] = 0;
+    }
+    for (int i = 0; i < size; i++)
+    {
+        localData[i] = rand() % 20;
+        localSum += localData[i];
+    }
+
+    printf("Before globalSum: P %d: %d\n", rank, globalSum);
+    printf("Before localSum: P %d: %d\n", rank, localSum);
+
+    MPI_Reduce(&localSum, &globalSum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    // if (rank == 1)
+    // {
+    //     printf("P1 received:");
+    //     for (int i = 0; i < size; i++)
+    //         printf(" %d", localData[i]);
+    //     printf("\n");
+    // }
+    printf("After globalSum: P %d: %d\n", rank, globalSum);
+    printf("After localSum: P %d: %d\n", rank, localSum);
+    free(globalData);
+    free(localData);
+}
+
 void main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
@@ -67,7 +212,10 @@ void main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // testBroadcast(rank, buf);
-    testScatterGather(rank, size);
+    // testScatterGather(rank, size);
+    // testAllGather(rank, size);
+    // testAllToAll(rank, size);
+    testReduce(rank, size);
 
     MPI_Finalize();
 }
