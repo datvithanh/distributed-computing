@@ -8,16 +8,13 @@
 #define mb 1024 * 1024
 #define MAX_LOOP 100
 
-char *printData(int *data)
+void printData(int data[])
 {
-    char *result, temp[5];
-    result = malloc(sizeof(char) * 100);
     for (int i = 0; i < sizeof(data); i++)
     {
-        sprintf(temp, " %d", data[i]);
-        strcat(result, temp);
+        printf(" %d", data[i]);
     }
-    return *result;
+    printf("\n");
 }
 
 void testBroadcast(int rank, int buf)
@@ -89,13 +86,17 @@ void testAllGather(int rank, int size)
         }
     }
 
-    printf("Before globalData: P %d:%s\n", rank, printData(globalData));
-    printf("Before localData: P %d:%s\n", rank, printData(localData));
+    printf("Before globalData: P %d:", rank);
+    printData(globalData);
+    printf("Before localData: P %d:", rank);
+    printData(localData);
 
     MPI_Allgather(globalData, size, MPI_INT, localData, size, MPI_INT, MPI_COMM_WORLD);
 
-    printf("After globalData: P %d:%s\n", rank, printData(globalData));
-    printf("After localData: P %d:%s\n", rank, printData(localData));
+    printf("After globalData: P %d:", rank);
+    printData(globalData);
+    printf("After localData: P %d:", rank);
+    printData(localData);
 
     free(globalData);
     free(localData);
@@ -120,13 +121,17 @@ void testAllToAll(int rank, int size)
         }
     }
 
-    printf("Before globalData: P %d:%s\n", rank, printData(globalData));
-    printf("Before localData: P %d:%s\n", rank, printData(localData));
+    printf("Before globalData: P %d:", rank);
+    printData(globalData);
+    printf("Before localData: P %d:", rank);
+    printData(localData);
 
     MPI_Alltoall(globalData, size, MPI_INT, localData, size, MPI_INT, MPI_COMM_WORLD);
 
-    printf("After globalData: P %d:%s\n", rank, printData(globalData));
-    printf("After localData: P %d:%s\n", rank, printData(localData));
+    printf("After globalData: P %d:", rank);
+    printData(globalData);
+    printf("After localData: P %d:", rank);
+    printData(localData);
 
     free(globalData);
     free(localData);
