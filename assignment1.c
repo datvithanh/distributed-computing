@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #define N 2000010
-#define mb 1024*1024
+#define Mb 1048576
 
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     end = MPI_Wtime();
 
     if (rank == 0) 
-      printf("%d doubles\tsize %dB\ttime %.10fs\trate %.2f Mb/sec\n", i, total, end-start, (1.0*total/mb)/(end-start));
+      printf("%d doubles\tsize %dB\ttime %.10fs\trate %.2f Mb/sec\n", i, total, end-start, (1.0*total/Mb)/(end-start));
   }
 
   MPI_Finalize();
