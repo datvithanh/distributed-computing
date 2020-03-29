@@ -6,9 +6,7 @@
 int pi_openmp()
 {
     int i;
-    double x, sum, pi, step;
-    x = 0.0;
-    sum = 0.0;
+    double x, sum = 0.0, pi, step;
     step = 1.0 / (double)NUMSTEPS;
 
     #pragma omp parallel private(i, x)
@@ -26,7 +24,7 @@ int pi_openmp()
 
 int pi()
 {
-    double x = 0.0, sum = 0.0, pi, step;
+    double x, sum = 0.0, pi, step;
     step = 1.0 / (double)NUMSTEPS;
 
     for (int i = 0; i < NUMSTEPS; ++i)
