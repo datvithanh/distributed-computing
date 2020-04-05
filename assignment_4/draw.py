@@ -10,4 +10,4 @@ for x in range(0, len(lines)):
     for y in range(0, len(lines[0])):
         draw.point([x, y], (lines[x][y], lines[x][y], lines[x][y]))
 
-im.save('out.png', 'PNG')
+im.save('fractal.png', 'PNG')
