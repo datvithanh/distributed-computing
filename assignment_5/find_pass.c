@@ -4,25 +4,25 @@
 #include <string.h>
 #include <omp.h>
 #include <time.h>
-// #include <openssl/sha.h>
+#include <openssl/sha.h>
 
-unsigned char *p1 = "4a5c2d660232375d25dc141febdaae056ba05e95fe606e88a350929a36a9ea67";
-unsigned char *p2 = "6f32ebbc1ee9cf3867df5f86f071ee147c6190ac7bfd88330fd8996a0abb512e";
-unsigned char *p3 = "33c35f8c8515b13ce15324718eccea7fb10e0c8848df3e3e0a7c0e529303828d";
-unsigned char *p4 = "dc348085d14fefa692adf1e7d97e2d59253c01189359873186d376ebe0f3ad3a";
+char *p1 = "4a5c2d660232375d25dc141febdaae056ba05e95fe606e88a350929a36a9ea67",
+     *p2 = "6f32ebbc1ee9cf3867df5f86f071ee147c6190ac7bfd88330fd8996a0abb512e",
+     *p3 = "33c35f8c8515b13ce15324718eccea7fb10e0c8848df3e3e0a7c0e529303828d",
+     *p4 = "dc348085d14fefa692adf1e7d97e2d59253c01189359873186d376ebe0f3ad3a";
 
-// char *convert_hash_to_string(unsigned char *hash)
-// {
-//     char *result = malloc(sizeof(char) * SHA256_DIGEST_LENGTH * 2 + 1);
-//     char *temp = malloc(sizeof(char) * 2);
-//     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-//     {
-//         sprintf(temp, "%02x", hash[i]);
-//         strcat(result, temp);
-//     }
-//     result[SHA256_DIGEST_LENGTH * 2] = 0;
-//     return result;
-// }
+char *convert_hash_to_string(unsigned char *hash)
+{
+    char *result = malloc(sizeof(char) * SHA256_DIGEST_LENGTH * 2 + 1);
+    char *temp = malloc(sizeof(char) * 2);
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(temp, "%02x", hash[i]);
+        strcat(result, temp);
+    }
+    result[SHA256_DIGEST_LENGTH * 2] = 0;
+    return result;
+}
 
 int check_pass(char *hash_string)
 {
@@ -43,52 +43,65 @@ void find_pass()
     unsigned char *digest;
     char *hash_string;
     char *password = malloc(sizeof(char) * 4);
-
+    FILE *fp;
+    fp = fopen("normal.txt", "w+");
     for (a = start; a <= end; a++)
         for (b = start; b <= end; b++)
             for (c = start; c <= end; c++)
                 for (d = start; d <= end; d++)
                 {
-                    // sprintf(password, "%c%c%c%c", a, b, c, d);
-                    // digest = SHA256(password, strlen(password), 0);
-                    // hash_string = convert_hash_to_string(digest);
+                    sprintf(password, "%c%c%c%c", a, b, c, d);
+                    digest = SHA256(password, strlen(password), 0);
+                    hash_string = convert_hash_to_string(digest);
+                    fprintf(fp, "%s-%s\n", password, hash_string);
 
-                    // if (check_pass(hash_string))
-                    // {
-                    //     printf("Pass: %s - hash: %s\n", password, hash_string);
-                    // }
-                    // printf("%s\n", password);
+                    if (check_pass(hash_string))
+                    {
+                        printf("Pass: %s - hash: %s\n", password, hash_string);
+                    }
+                    // printf("%s\n", hash_string);
                 }
+    fclose(fp);
 }
 
 void omp_find_pass()
 {
+    FILE *fp;
+    fp = fopen("omp.txt", "w+");
     char a, b, c, d, start = 'a', end = 'z';
     unsigned char *digest;
     char *hash_string;
     char *password = malloc(sizeof(char) * 4);
 
-    #pragma omp parallel shared(password) private(a, b, c, d) 
+#pragma omp parallel shared(password) private(a, b, c, d, digest, hash_string)
     {
-        #pragma omp for 
+#pragma omp for
         for (a = start; a <= end; a++)
+        {
             for (b = start; b <= end; b++)
+            {
                 for (c = start; c <= end; c++)
+                {
                     for (d = start; d <= end; d++)
                     {
                         sprintf(password, "%c%c%c%c", a, b, c, d);
-                        printf("%s\n", password);
+                        // fprintf(fp, "%s\n", password);
 
-                        // digest = SHA256(password, strlen(password), 0);
-                        // hash_string = convert_hash_to_string(digest);
+                        digest = SHA256(password, strlen(password), 0);
+                        hash_string = convert_hash_to_string(digest);
+                        fprintf(fp, "%s-%s\n", password, hash_string);
 
-                        // if (check_pass(hash_string))
-                        // {
-                        //     printf("Pass: %s - hash: %s\n", password, hash_string);
-                        // }
-                        // printf("%s\n", password);
+                        if (check_pass(hash_string))
+                        {
+                            printf("Pass: %s - hash: %s\n", password, hash_string);
+                        }
+                        // printf("%s\n", hash_string);
                     }
+                }
+            }
+        }
     }
+    fclose(fp);
 }
 
 int main(int argc, char const *argv[])
