@@ -73,15 +73,12 @@ void omp_find_pass()
     char *hash_string;
     char *password = malloc(sizeof(char) * 4);
 
-#pragma omp parallel shared(password) private(a, b, c, d, digest, hash_string)
+    #pragma omp parallel shared(password) private(a, b, c, d, digest, hash_string)
     {
-#pragma omp for
+        #pragma omp for
         for (a = start; a <= end; a++)
-        {
             for (b = start; b <= end; b++)
-            {
                 for (c = start; c <= end; c++)
-                {
                     for (d = start; d <= end; d++)
                     {
                         sprintf(password, "%c%c%c%c", a, b, c, d);
@@ -97,9 +94,6 @@ void omp_find_pass()
                         }
                         // printf("%s\n", hash_string);
                     }
-                }
-            }
-        }
     }
     fclose(fp);
 }

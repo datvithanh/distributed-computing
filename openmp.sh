@@ -1,3 +1,2 @@
-gcc-9 -fopenmp $1
+gcc-9 -I /usr/local/Cellar/node/12.6.0/include/node -fopenmp $1
 ./a.out $2
-wc -l temp.txt
