@@ -130,10 +130,10 @@ int main(int argc, char const *argv[])
     clock_t begin, end;
     omp_set_num_threads(4);
 
-    // begin = clock();
-    // find_pass();
-    // end = clock();
-    // printf("Normal time taken: \t%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+    begin = clock();
+    find_pass();
+    end = clock();
+    printf("Normal time taken: \t%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
 
     begin = clock();
     omp_find_pass();
