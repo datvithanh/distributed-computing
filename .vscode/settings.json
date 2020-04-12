@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "crypt.h": "c",
+        "sha.h": "c",
+        "time.h": "c"
+    }
+}
