@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+"""mapper.py"""
+
 import sys
 
 k = 9
