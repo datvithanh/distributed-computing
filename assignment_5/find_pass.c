@@ -64,8 +64,11 @@ void find_pass()
                     unsigned char *md_value = malloc(sizeof(unsigned char) * EVP_MAX_MD_SIZE);
                     unsigned int md_len;
                     mdctx = EVP_MD_CTX_new();
+                    // Set up digest context to use a digest type
                     EVP_DigestInit_ex(mdctx, md, NULL);
+                    // Hash data into the digest context
                     EVP_DigestUpdate(mdctx, password, strlen(password));
+                    // Retrieve the digest value from context and store it in "md_value"
                     EVP_DigestFinal_ex(mdctx, md_value, &md_len);
                     EVP_MD_CTX_free(mdctx);
 
@@ -105,8 +108,11 @@ void omp_find_pass()
                         unsigned char *md_value = malloc(sizeof(unsigned char) * EVP_MAX_MD_SIZE);
                         unsigned int md_len;
                         mdctx = EVP_MD_CTX_new();
+                        // Set up digest context to use a digest type
                         EVP_DigestInit_ex(mdctx, md, NULL);
+                        // Hash data into the digest context
                         EVP_DigestUpdate(mdctx, password, strlen(password));
+                        // Retrieve the digest value from context and store it in "md_value"
                         EVP_DigestFinal_ex(mdctx, md_value, &md_len);
                         EVP_MD_CTX_free(mdctx);
 
