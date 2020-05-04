@@ -91,15 +91,6 @@ void omp_find_pass()
     int a, b, c, d;
     const EVP_MD *md = EVP_get_digestbyname("sha256");
 
-<<<<<<< HEAD:assignment_5/sha256.c
-    #pragma omp parallel shared(password) private(a, b, c, d, digest, hash_string)
-    {
-        #pragma omp for
-        for (a = start; a <= end; a++)
-            for (b = start; b <= end; b++)
-                for (c = start; c <= end; c++)
-                    for (d = start; d <= end; d++)
-=======
 #pragma omp parallel private(a, b, c, d)
     {
 #pragma omp for
@@ -110,7 +101,6 @@ void omp_find_pass()
                 for (c = START; c <= END; c++)
                 {
                     for (d = START; d <= END; d++)
->>>>>>> 4d13a5ad021943c0616dc0c75de89fcafbb02a6b:assignment_5/find_pass.c
                     {
                         char *password = malloc(sizeof(char) * 4);
                         sprintf(password, "%c%c%c%c", pool[a], pool[b], pool[c], pool[d]);
