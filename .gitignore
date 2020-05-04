@@ -1,8 +1,7 @@
 *
 !/**/
 !*.*
-test.*
-test
+test*
 .ipynb_checkpoints
 *.txt
 .vscode
