@@ -4,5 +4,6 @@
         "sha.h": "c",
         "time.h": "c",
         "evp.h": "c"
-    }
+    },
+    "python.dataScience.jupyterServerURI": "http://54.146.231.80:8888/"
 }
