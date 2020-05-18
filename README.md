@@ -13,3 +13,6 @@ To download and extract the Twitter dataset, run the following:
 cd data/twitter
 ./download.sh
 ```
+
+## networkx community documentation
+https://networkx.github.io/documentation/stable/reference/algorithms/community.html
