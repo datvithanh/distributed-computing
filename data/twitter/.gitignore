@@ -1,3 +1,4 @@
 *.gz
 egos/
 twitter_combined.txt
+.DS_Store
