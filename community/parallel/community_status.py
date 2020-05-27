@@ -1,5 +1,5 @@
 # coding=utf-8
-
+from joblib import Parallel, delayed
 
 class Status(object):
     """
@@ -38,6 +38,7 @@ class Status(object):
     def init(self, graph, weight, part=None):
         """Initialize the status of a graph with every node in one community"""
         count = 0
+#         print('hello parallel')
         self.node2com = dict([])
         self.total_weight = 0
         self.degrees = dict([])
@@ -45,19 +46,18 @@ class Status(object):
         self.internals = dict([])
         self.total_weight = graph.size(weight=weight)
         if part is None:
-            for node in graph.nodes():
+            def assign_node(graph, node, count):
                 self.node2com[node] = count
                 deg = float(graph.degree(node, weight=weight))
-                if deg < 0:
-                    error = "Bad node degree ({})".format(deg)
-                    raise ValueError(error)
                 self.degrees[count] = deg
                 self.gdegrees[node] = deg
                 edge_data = graph.get_edge_data(node, node, default={weight: 0})
                 self.loops[node] = float(edge_data.get(weight, 1))
                 self.internals[count] = self.loops[node]
-                count += 1
+                
+            Parallel(n_jobs=2, require='sharedmem')(delayed(assign_node)(graph, node, count) for node, count in zip(graph.nodes(), list(range(len(graph)))))
         else:
+            print("part is not none")
             for node in graph.nodes():
                 com = part[node]
                 self.node2com[node] = com

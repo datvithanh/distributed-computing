@@ -1,12 +1,17 @@
-from mpi4py import MPI
-import numpy
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank == 0:
-    data = {'a': 7, 'b': 3.14}
-    comm.send(data, dest=1)
-elif rank == 1:
-    data = comm.recv(source=0)
-    print('On process 1, data is ',data)
+import time
+if __name__ == "__main__":
+    from graph.loader import load_raw_graph
+    from graph.partition.louvain import *
+    from community.parallel import best_partition
+    
+    g = load_raw_graph('data/twitter/egos/12831.edges')
+    ug = g.to_undirected()
+    print(f'g has {len(g)} nodes')
+    
+    start = time.time()
+    partition = best_partition(ug)
+    end = time.time()
+    
+    size = float(len(set(partition.values())))
+    print(f'g has total {size} communities')
+    print(f'total time to partition g: {end - start}')
