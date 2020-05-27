@@ -45,7 +45,7 @@ def check_random_state(seed):
     raise ValueError("%r cannot be used to seed a numpy.random.RandomState"
                      " instance" % seed)
 
-
+# TODO
 def partition_at_level(dendrogram, level):
     """Return the partition of the nodes at the given level
 
@@ -347,19 +347,23 @@ def generate_dendrogram(graph,
 
     current_graph = graph.copy()
     status = Status()
+    #paralleled
     status.init(current_graph, weight, part_init)
     status_list = list()
     __one_level(current_graph, status, weight, resolution, random_state)
+    #paralleled
     new_mod = __modularity(status, resolution)
     partition = __renumber(status.node2com)
     status_list.append(partition)
     mod = new_mod
+    #paralleled
     current_graph = induced_graph(partition, current_graph, weight)
     status.init(current_graph, weight)
 
     while True:
         __one_level(current_graph, status, weight, resolution, random_state)
         new_mod = __modularity(status, resolution)
+        print(new_mod)
         if new_mod - mod < __MIN:
             break
         partition = __renumber(status.node2com)
@@ -408,12 +412,14 @@ def induced_graph(partition, graph, weight="weight"):
     ret = nx.Graph()
     ret.add_nodes_from(partition.values())
 
-    for node1, node2, datas in graph.edges(data=True):
+    def add_to_graph(node1, node2, datas):
         edge_weight = datas.get(weight, 1)
         com1 = partition[node1]
         com2 = partition[node2]
         w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
         ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
+
+    Parallel(n_jobs=2, require='sharedmem')(delayed(add_to_graph)(node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
 
     return ret
 
@@ -464,7 +470,7 @@ def load_binary(data):
 
     return graph
 
-
+# sequential
 def __one_level(graph, status, weight_key, resolution, random_state):
     """Compute one level of communities
     """
@@ -478,13 +484,12 @@ def __one_level(graph, status, weight_key, resolution, random_state):
         modified = False
         nb_pass_done += 1
 
-        def compute(graph, status, weight_key, resolution, random_state, node, modified):
+        for node in __randomize(graph.nodes(), random_state):
             com_node = status.node2com[node]
             degc_totw = status.gdegrees.get(node, 0.) / (status.total_weight * 2.)  # NOQA
             neigh_communities = __neighcom(node, graph, status, weight_key)
-            remove_cost = - resolution * neigh_communities.get(com_node, 0) + \
-                          (status.degrees.get(com_node, 0.) -
-                           status.gdegrees.get(node, 0.)) * degc_totw
+            remove_cost = - resolution * neigh_communities.get(com_node,0) + \
+                (status.degrees.get(com_node, 0.) - status.gdegrees.get(node, 0.)) * degc_totw
             __remove(node, com_node,
                      neigh_communities.get(com_node, 0.), status)
             best_com = com_node
@@ -499,15 +504,53 @@ def __one_level(graph, status, weight_key, resolution, random_state):
                      neigh_communities.get(best_com, 0.), status)
             if best_com != com_node:
                 modified = True
-
-        Parallel(n_jobs=2, require='sharedmem')(
-            delayed(compute)(graph, status, weight_key, resolution, random_state, node, modified) for node in
-            __randomize(graph.nodes(), random_state))
-
         new_mod = __modularity(status, resolution)
         if new_mod - cur_mod < __MIN:
             break
 
+# #parallel
+# def __one_level(graph, status, weight_key, resolution, random_state):
+#     """Compute one level of communities
+#     """
+#     modified = True
+#     nb_pass_done = 0
+#     cur_mod = __modularity(status, resolution)
+#     new_mod = cur_mod
+
+#     while modified and nb_pass_done != __PASS_MAX:
+#         cur_mod = new_mod
+#         modified = False
+#         nb_pass_done += 1
+
+#         def compute(graph, status, weight_key, resolution, random_state, node, modified):
+#             com_node = status.node2com[node]
+#             degc_totw = status.gdegrees.get(node, 0.) / (status.total_weight * 2.)  # NOQA
+#             neigh_communities = __neighcom(node, graph, status, weight_key)
+#             remove_cost = - resolution * neigh_communities.get(com_node, 0) + \
+#                           (status.degrees.get(com_node, 0.) -
+#                            status.gdegrees.get(node, 0.)) * degc_totw
+#             __remove(node, com_node,
+#                      neigh_communities.get(com_node, 0.), status)
+#             best_com = com_node
+#             best_increase = 0
+#             for com, dnc in __randomize(neigh_communities.items(), random_state):
+#                 incr = remove_cost + resolution * dnc - \
+#                        status.degrees.get(com, 0.) * degc_totw
+#                 if incr > best_increase:
+#                     best_increase = incr
+#                     best_com = com
+#             __insert(node, best_com,
+#                      neigh_communities.get(best_com, 0.), status)
+#             if best_com != com_node:
+#                 modified = True
+
+#         Parallel(n_jobs=2, require='sharedmem')(
+#             delayed(compute)(graph, status, weight_key, resolution, random_state, node, modified) for node in
+#             __randomize(graph.nodes(), random_state))
+
+#         new_mod = __modularity(status, resolution)
+#         if new_mod - cur_mod < __MIN:
+#             break
 
 def __neighcom(node, graph, status, weight_key):
     """
@@ -548,15 +591,19 @@ def __modularity(status, resolution):
     status precomputed
     """
     links = float(status.total_weight)
-    result = 0.
-    for community in set(status.node2com.values()):
+
+    def community_modularity(community):
         in_degree = status.internals.get(community, 0.)
         degree = status.degrees.get(community, 0.)
         if links > 0:
-            result += in_degree * resolution / \
-                      links - ((degree / (2. * links)) ** 2)
-    return result
+            return in_degree * resolution / links -  ((degree / (2. * links)) ** 2)
+        else:
+            return 0
 
+    community_mods = Parallel(n_jobs=2, require='sharedmem')(
+            delayed(community_modularity)(community) for community in set(status.node2com.values()))
+
+    return sum(community_mods)
 
 def __randomize(items, random_state):
     """Returns a List containing a random permutation of items"""

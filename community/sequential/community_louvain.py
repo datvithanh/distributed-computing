@@ -360,6 +360,7 @@ def generate_dendrogram(graph,
     while True:
         __one_level(current_graph, status, weight, resolution, random_state)
         new_mod = __modularity(status, resolution)
+        print(new_mod)
         if new_mod - mod < __MIN:
             break
         partition = __renumber(status.node2com)
