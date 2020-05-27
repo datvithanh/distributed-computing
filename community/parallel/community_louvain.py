@@ -8,7 +8,7 @@ import array
 
 import numbers
 import warnings
-
+from joblib import Parallel, delayed
 import networkx as nx
 import numpy as np
 
@@ -39,8 +39,8 @@ def check_random_state(seed):
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
     if isinstance(seed, (numbers.Integral, np.integer)):
-        return np.random.RandomState(seed)
-    if isinstance(seed, np.random.RandomState):
+        return np.random.seed(seed)
+    if isinstance(seed, np.random.seed):
         return seed
     raise ValueError("%r cannot be used to seed a numpy.random.RandomState"
                      " instance" % seed)
@@ -241,7 +241,7 @@ def best_partition(graph,
     >>> pos = nx.spring_layout(G)
     >>> # color the nodes according to their partition
     >>> cmap = cm.get_cmap('viridis', max(partition.values()) + 1)
-    >>> nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=40, 
+    >>> nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=40,
     >>>                        cmap=cmap, node_color=list(partition.values()))
     >>> nx.draw_networkx_edges(G, pos, alpha=0.5)
     >>> plt.show()
@@ -478,12 +478,13 @@ def __one_level(graph, status, weight_key, resolution, random_state):
         modified = False
         nb_pass_done += 1
 
-        for node in __randomize(graph.nodes(), random_state):
+        def compute(graph, status, weight_key, resolution, random_state, node, modified):
             com_node = status.node2com[node]
             degc_totw = status.gdegrees.get(node, 0.) / (status.total_weight * 2.)  # NOQA
             neigh_communities = __neighcom(node, graph, status, weight_key)
-            remove_cost = - resolution * neigh_communities.get(com_node,0) + \
-                (status.degrees.get(com_node, 0.) - status.gdegrees.get(node, 0.)) * degc_totw
+            remove_cost = - resolution * neigh_communities.get(com_node, 0) + \
+                          (status.degrees.get(com_node, 0.) -
+                           status.gdegrees.get(node, 0.)) * degc_totw
             __remove(node, com_node,
                      neigh_communities.get(com_node, 0.), status)
             best_com = com_node
@@ -498,6 +499,11 @@ def __one_level(graph, status, weight_key, resolution, random_state):
                      neigh_communities.get(best_com, 0.), status)
             if best_com != com_node:
                 modified = True
+
+        Parallel(n_jobs=2, require='sharedmem')(
+            delayed(compute)(graph, status, weight_key, resolution, random_state, node, modified) for node in
+            __randomize(graph.nodes(), random_state))
+
         new_mod = __modularity(status, resolution)
         if new_mod - cur_mod < __MIN:
             break
@@ -547,7 +553,8 @@ def __modularity(status, resolution):
         in_degree = status.internals.get(community, 0.)
         degree = status.degrees.get(community, 0.)
         if links > 0:
-            result += in_degree * resolution / links -  ((degree / (2. * links)) ** 2)
+            result += in_degree * resolution / \
+                      links - ((degree / (2. * links)) ** 2)
     return result
 
 
