@@ -504,6 +504,7 @@ def __one_level(graph, status, weight_key, resolution, random_state):
                      neigh_communities.get(best_com, 0.), status)
             if best_com != com_node:
                 modified = True
+
         new_mod = __modularity(status, resolution)
         if new_mod - cur_mod < __MIN:
             break
@@ -558,11 +559,20 @@ def __neighcom(node, graph, status, weight_key):
     with the decomposition node2com
     """
     weights = {}
+
     for neighbor, datas in graph[node].items():
         if neighbor != node:
             edge_weight = datas.get(weight_key, 1)
             neighborcom = status.node2com[neighbor]
             weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
+    
+    # def find_neighbor(neighbor, datas):
+    #     if neighbor != node:
+    #         edge_weight = datas.get(weight_key, 1)
+    #         neighborcom = status.node2com[neighbor]
+    #         weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
+
+    # Parallel(n_jobs=2, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())    
 
     return weights
 
