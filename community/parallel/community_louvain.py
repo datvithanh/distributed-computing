@@ -483,45 +483,6 @@ def load_binary(data):
 
     return graph
 
-# # sequential
-# @timer
-# def __one_level(graph, status, weight_key, resolution, random_state, threadpool=None):
-#     """Compute one level of communities
-#     """
-#     modified = True
-#     nb_pass_done = 0
-#     cur_mod = __modularity(status, resolution, threadpool)
-#     new_mod = cur_mod
-
-#     while modified and nb_pass_done != __PASS_MAX:
-#         cur_mod = new_mod
-#         modified = False
-#         nb_pass_done += 1
-
-#         for node in __randomize(graph.nodes(), random_state):
-#             com_node = status.node2com[node]
-#             degc_totw = status.gdegrees.get(node, 0.) / (status.total_weight * 2.)  # NOQA
-#             neigh_communities = __neighcom(node, graph, status, weight_key)
-#             remove_cost = - resolution * neigh_communities.get(com_node,0) + \
-#                 (status.degrees.get(com_node, 0.) - status.gdegrees.get(node, 0.)) * degc_totw
-#             __remove(node, com_node,
-#                      neigh_communities.get(com_node, 0.), status)
-#             best_com = com_node
-#             best_increase = 0
-#             for com, dnc in __randomize(neigh_communities.items(), random_state):
-#                 incr = remove_cost + resolution * dnc - \
-#                        status.degrees.get(com, 0.) * degc_totw
-#                 if incr > best_increase:
-#                     best_increase = incr
-#                     best_com = com
-#             __insert(node, best_com,
-#                      neigh_communities.get(best_com, 0.), status)
-#             if best_com != com_node:
-#                 modified = True
-#         new_mod = __modularity(status, resolution, threadpool)
-#         if new_mod - cur_mod < __MIN:
-#             break
-
 #parallel
 @timer
 def __one_level(graph, status, weight_key, resolution, random_state, threadpool=None):
@@ -579,6 +540,14 @@ def __neighcom(node, graph, status, weight_key, threadpool=None):
             edge_weight = datas.get(weight_key, 1)
             neighborcom = status.node2com[neighbor]
             weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
+    
+    # def find_neighbor(neighbor, datas):
+    #     if neighbor != node:
+    #         edge_weight = datas.get(weight_key, 1)
+    #         neighborcom = status.node2com[neighbor]
+    #         weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
+
+    # Parallel(n_jobs=2, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())    
 
 #     def find_neighbor(neighbor, datas):
 #         if neighbor != node:
