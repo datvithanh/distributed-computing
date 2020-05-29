@@ -3,9 +3,11 @@ if __name__ == "__main__":
     from graph.loader import load_raw_graph
     from graph.partition.louvain import *
     from community.parallel import best_partition
-    # from community.sequential import best_partition
+#     from community.sequential import best_partition
+
     
     g = load_raw_graph('data/twitter/egos/12831.edges')
+#     g = load_raw_graph('data/twitter/twitter_combined.txt')
     ug = g.to_undirected()
     print(f'g has {len(g)} nodes')
     

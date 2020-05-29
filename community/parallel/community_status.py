@@ -1,5 +1,6 @@
 # coding=utf-8
 from joblib import Parallel, delayed
+from utils import timer
 
 class Status(object):
     """
@@ -35,7 +36,8 @@ class Status(object):
         new_status.gdegrees = self.gdegrees.copy()
         new_status.total_weight = self.total_weight
 
-    def init(self, graph, weight, part=None):
+    @timer
+    def init(self, graph, weight, part=None, threadpool=None):
         """Initialize the status of a graph with every node in one community"""
         count = 0
 #         print('hello parallel')
@@ -54,8 +56,10 @@ class Status(object):
                 edge_data = graph.get_edge_data(node, node, default={weight: 0})
                 self.loops[node] = float(edge_data.get(weight, 1))
                 self.internals[count] = self.loops[node]
-                
-            Parallel(n_jobs=2, require='sharedmem')(delayed(assign_node)(graph, node, count) for node, count in zip(graph.nodes(), list(range(len(graph)))))
+            if threadpool is None:
+                Parallel(n_jobs=8, require='sharedmem')(delayed(assign_node)(graph, node, count) for node, count in zip(graph.nodes(), list(range(len(graph)))))
+            else:
+                threadpool(delayed(assign_node)(graph, node, count) for node, count in zip(graph.nodes(), list(range(len(graph)))))
         else:
             print("part is not none")
             for node in graph.nodes():
