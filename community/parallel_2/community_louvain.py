@@ -8,7 +8,7 @@ import array
 
 import numbers
 import warnings
-
+from joblib import Parallel, delayed
 import networkx as nx
 import numpy as np
 
@@ -412,13 +412,20 @@ def induced_graph(partition, graph, weight="weight"):
     ret = nx.Graph()
     ret.add_nodes_from(partition.values())
 
-    for node1, node2, datas in graph.edges(data=True):
+    def add_to_graph(node1, node2, datas):
         edge_weight = datas.get(weight, 1)
         com1 = partition[node1]
         com2 = partition[node2]
         w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-        ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
-    print('Ret', ret.number_of_nodes())
+        # ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
+        return (com1, com2, {weight: w_prec + edge_weight})
+
+    result = Parallel(n_jobs=1, require='sharedmem')(delayed(add_to_graph)(
+        node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
+    for row in result:
+        ret.add_edge(row[0], row[1], **row[2])
+
+    print('Ret', list(ret.nodes))
     return ret
 
 
