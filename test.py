@@ -6,11 +6,11 @@ if __name__ == "__main__":
     # from community.sequential import best_partition
     
     g = load_raw_graph('data/twitter/egos/12831.edges')
-    ug = g.to_undirected()
+
     print(f'g has {len(g)} nodes')
     
     start = time.time()
-    partition = best_partition(ug)
+    partition = best_partition(u)
     end = time.time()
     
     size = float(len(set(partition.values())))
