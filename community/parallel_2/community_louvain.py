@@ -372,7 +372,7 @@ def generate_dendrogram(graph,
         print("==================")
     return status_list[:]
 
-
+#TODO
 @timer
 def induced_graph(partition, graph, weight="weight"):
     """Produce the graph where nodes are the communities
