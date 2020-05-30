@@ -1,5 +1,5 @@
 # coding=utf-8
-
+from utils import timer
 
 class Status(object):
     """
@@ -34,7 +34,8 @@ class Status(object):
         new_status.degrees = self.degrees.copy()
         new_status.gdegrees = self.gdegrees.copy()
         new_status.total_weight = self.total_weight
-
+        
+    @timer
     def init(self, graph, weight, part=None):
         """Initialize the status of a graph with every node in one community"""
         count = 0

@@ -13,6 +13,7 @@ import networkx as nx
 import numpy as np
 
 from .community_status import Status
+from utils import timer
 
 __author__ = """Thomas Aynaud (thomas.aynaud@lip6.fr)"""
 #    Copyright (C) 2009 by
@@ -254,7 +255,6 @@ def best_partition(graph,
                                 random_state)
     return partition_at_level(dendo, len(dendo) - 1)
 
-
 def generate_dendrogram(graph,
                         part_init=None,
                         weight='weight',
@@ -356,7 +356,7 @@ def generate_dendrogram(graph,
     mod = new_mod
     current_graph = induced_graph(partition, current_graph, weight)
     status.init(current_graph, weight)
-
+    print("==================")
     while True:
         __one_level(current_graph, status, weight, resolution, random_state)
         new_mod = __modularity(status, resolution)
@@ -368,9 +368,10 @@ def generate_dendrogram(graph,
         mod = new_mod
         current_graph = induced_graph(partition, current_graph, weight)
         status.init(current_graph, weight)
+        print("==================")
     return status_list[:]
 
-
+@timer
 def induced_graph(partition, graph, weight="weight"):
     """Produce the graph where nodes are the communities
 
@@ -418,7 +419,7 @@ def induced_graph(partition, graph, weight="weight"):
 
     return ret
 
-
+@timer
 def __renumber(dictionary):
     """Renumber the values of the dictionary from 0 to n
     """
@@ -465,7 +466,7 @@ def load_binary(data):
 
     return graph
 
-
+@timer
 def __one_level(graph, status, weight_key, resolution, random_state):
     """Compute one level of communities
     """
@@ -536,21 +537,22 @@ def __insert(node, com, weight, status):
     status.internals[com] = float(status.internals.get(com, 0.) +
                                   weight + status.loops.get(node, 0.))
 
-
+@timer
 def __modularity(status, resolution):
     """
     Fast compute the modularity of the partition of the graph using
     status precomputed
     """
     links = float(status.total_weight)
+    
     result = 0.
     for community in set(status.node2com.values()):
         in_degree = status.internals.get(community, 0.)
         degree = status.degrees.get(community, 0.)
         if links > 0:
             result += in_degree * resolution / links -  ((degree / (2. * links)) ** 2)
-    return result
 
+    return result
 
 def __randomize(items, random_state):
     """Returns a List containing a random permutation of items"""
