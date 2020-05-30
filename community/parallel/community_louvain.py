@@ -47,6 +47,8 @@ def check_random_state(seed):
                      " instance" % seed)
 
 # TODO
+
+
 def partition_at_level(dendrogram, level):
     """Return the partition of the nodes at the given level
 
@@ -91,6 +93,7 @@ def partition_at_level(dendrogram, level):
         for node, community in partition.items():
             partition[node] = dendrogram[index][community]
     return partition
+
 
 @timer
 def modularity(partition, graph, weight='weight'):
@@ -256,6 +259,130 @@ def best_partition(graph,
     return partition_at_level(dendo, len(dendo) - 1)
 
 
+# def generate_dendrogram(graph,
+#                         part_init=None,
+#                         weight='weight',
+#                         resolution=1.,
+#                         randomize=None,
+#                         random_state=None):
+#     """Find communities in the graph and return the associated dendrogram
+
+#     A dendrogram is a tree and each level is a partition of the graph nodes.
+#     Level 0 is the first partition, which contains the smallest communities,
+#     and the best is len(dendrogram) - 1. The higher the level is, the bigger
+#     are the communities
+
+
+#     Parameters
+#     ----------
+#     graph : networkx.Graph
+#         the networkx graph which will be decomposed
+#     part_init : dict, optional
+#         the algorithm will start using this partition of the nodes. It's a
+#         dictionary where keys are their nodes and values the communities
+#     weight : str, optional
+#         the key in graph to use as weight. Default to 'weight'
+#     resolution :  double, optional
+#         Will change the size of the communities, default to 1.
+#         represents the time described in
+#         "Laplacian Dynamics and Multiscale Modular Structure in Networks",
+#         R. Lambiotte, J.-C. Delvenne, M. Barahona
+
+#     Returns
+#     -------
+#     dendrogram : list of dictionaries
+#         a list of partitions, ie dictionnaries where keys of the i+1 are the
+#         values of the i. and where keys of the first are the nodes of graph
+
+#     Raises
+#     ------
+#     TypeError
+#         If the graph is not a networkx.Graph
+
+#     See Also
+#     --------
+#     best_partition
+
+#     Notes
+#     -----
+#     Uses Louvain algorithm
+
+#     References
+#     ----------
+#     .. 1. Blondel, V.D. et al. Fast unfolding of communities in large
+#     networks. J. Stat. Mech 10008, 1-12(2008).
+
+#     Examples
+#     --------
+#     >>> G=nx.erdos_renyi_graph(100, 0.01)
+#     >>> dendo = generate_dendrogram(G)
+#     >>> for level in range(len(dendo) - 1) :
+#     >>>     print("partition at level", level,
+#     >>>           "is", partition_at_level(dendo, level))
+#     :param weight:
+#     :type weight:
+#     """
+#     if graph.is_directed():
+#         raise TypeError("Bad graph type, use only non directed graph")
+
+#     # Properly handle random state, eventually remove old `randomize` parameter
+#     # NOTE: when `randomize` is removed, delete code up to random_state = ...
+#     if randomize is not None:
+#         warnings.warn("The `randomize` parameter will be deprecated in future "
+#                       "versions. Use `random_state` instead.", DeprecationWarning)
+#         # If shouldn't randomize, we set a fixed seed to get determinisitc results
+#         if randomize is False:
+#             random_state = 0
+
+#     # We don't know what to do if both `randomize` and `random_state` are defined
+#     if randomize and random_state is not None:
+#         raise ValueError("`randomize` and `random_state` cannot be used at the "
+#                          "same time")
+
+#     random_state = check_random_state(random_state)
+
+#     # special case, when there is no link
+#     # the best partition is everyone in its community
+#     if graph.number_of_edges() == 0:
+#         part = dict([])
+#         for i, node in enumerate(graph.nodes()):
+#             part[node] = i
+#         return [part]
+
+#     current_graph = graph.copy()
+#     status = Status()
+#     threadpool = Parallel(n_jobs=16, require='sharedmem')
+
+#     # paralleled
+#     status.init(current_graph, weight, part_init, threadpool=threadpool)
+#     status_list = list()
+#     __one_level(current_graph, status, weight, resolution,
+#                 random_state, threadpool=threadpool)
+#     # paralleled
+#     new_mod = __modularity(status, resolution, threadpool=threadpool)
+#     partition = __renumber(status.node2com)
+#     status_list.append(partition)
+#     mod = new_mod
+#     # paralleled
+#     current_graph = induced_graph(
+#         partition, current_graph, weight, threadpool=threadpool)
+#     status.init(current_graph, weight, threadpool=threadpool)
+
+#     while True:
+#         __one_level(current_graph, status, weight, resolution,
+#                     random_state, threadpool=threadpool)
+#         new_mod = __modularity(status, resolution, threadpool=threadpool)
+#         print(new_mod)
+#         if new_mod - mod < __MIN:
+#             break
+#         partition = __renumber(status.node2com)
+#         status_list.append(partition)
+#         mod = new_mod
+#         current_graph = induced_graph(
+#             partition, current_graph, weight, threadpool=threadpool)
+#         status.init(current_graph, weight, threadpool=threadpool)
+#     return status_list[:]
+
 def generate_dendrogram(graph,
                         part_init=None,
                         weight='weight',
@@ -349,22 +476,25 @@ def generate_dendrogram(graph,
     current_graph = graph.copy()
     status = Status()
     threadpool = Parallel(n_jobs=16, require='sharedmem')
-    
-    #paralleled
+
+    # paralleled
     status.init(current_graph, weight, part_init, threadpool=threadpool)
     status_list = list()
-    __one_level(current_graph, status, weight, resolution, random_state, threadpool=threadpool)
-    #paralleled
+    __one_level(current_graph, status, weight, resolution,
+                random_state, threadpool=threadpool)
+    # paralleled
     new_mod = __modularity(status, resolution, threadpool=threadpool)
     partition = __renumber(status.node2com)
     status_list.append(partition)
     mod = new_mod
-    #paralleled
-    current_graph = induced_graph(partition, current_graph, weight, threadpool=threadpool)
+    # paralleled
+    current_graph = induced_graph(
+        partition, current_graph, weight, threadpool=threadpool)
     status.init(current_graph, weight, threadpool=threadpool)
 
     while True:
-        __one_level(current_graph, status, weight, resolution, random_state, threadpool=threadpool)
+        __one_level(current_graph, status, weight, resolution,
+                    random_state, threadpool=threadpool)
         new_mod = __modularity(status, resolution, threadpool=threadpool)
         print(new_mod)
         if new_mod - mod < __MIN:
@@ -372,9 +502,11 @@ def generate_dendrogram(graph,
         partition = __renumber(status.node2com)
         status_list.append(partition)
         mod = new_mod
-        current_graph = induced_graph(partition, current_graph, weight, threadpool=threadpool)
+        current_graph = induced_graph(
+            partition, current_graph, weight, threadpool=threadpool)
         status.init(current_graph, weight, threadpool=threadpool)
     return status_list[:]
+
 
 @timer
 def induced_graph(partition, graph, weight="weight", threadpool=None):
@@ -414,26 +546,31 @@ def induced_graph(partition, graph, weight="weight", threadpool=None):
     """
     ret = nx.Graph()
     ret.add_nodes_from(partition.values())
-    
-    for node1, node2, datas in graph.edges(data=True):
+
+    # for node1, node2, datas in graph.edges(data=True):
+    #     edge_weight = datas.get(weight, 1)
+    #     com1 = partition[node1]
+    #     com2 = partition[node2]
+    #     w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
+    #     ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
+
+    def add_to_graph(node1, node2, datas):
         edge_weight = datas.get(weight, 1)
         com1 = partition[node1]
         com2 = partition[node2]
         w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-        ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
+        # ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
+        return (com1, com2, w_prec + edge_weight)
 
-#     def add_to_graph(node1, node2, datas):
-#         edge_weight = datas.get(weight, 1)
-#         com1 = partition[node1]
-#         com2 = partition[node2]
-#         w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-#         ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
-        
-#     if threadpool is None:
-#         Parallel(n_jobs=8, require='sharedmem')(delayed(add_to_graph)(node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
-#     else:
-#         threadpool(delayed(add_to_graph)(node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
-        
+    if threadpool is None:
+        result = Parallel(n_jobs=8, require='sharedmem')(delayed(add_to_graph)(
+            node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
+    else:
+        result = threadpool(delayed(add_to_graph)(node1, node2, datas)
+                            for node1, node2, datas in graph.edges(data=True))
+    for row in result:
+        ret.add_edge(row[0], row[1], weight=row[2])
+
     return ret
 
 
@@ -483,7 +620,7 @@ def load_binary(data):
 
     return graph
 
-#parallel
+# parallel
 @timer
 def __one_level(graph, status, weight_key, resolution, random_state, threadpool=None):
     """Compute one level of communities
@@ -503,15 +640,15 @@ def __one_level(graph, status, weight_key, resolution, random_state, threadpool=
             degc_totw = status.gdegrees.get(node, 0.) / (status.total_weight * 2.)  # NOQA
             neigh_communities = __neighcom(node, graph, status, weight_key)
             remove_cost = - resolution * neigh_communities.get(com_node, 0) + \
-                          (status.degrees.get(com_node, 0.) -
-                           status.gdegrees.get(node, 0.)) * degc_totw
+                (status.degrees.get(com_node, 0.) -
+                 status.gdegrees.get(node, 0.)) * degc_totw
             __remove(node, com_node,
                      neigh_communities.get(com_node, 0.), status)
             best_com = com_node
             best_increase = 0
             for com, dnc in __randomize(neigh_communities.items(), random_state):
                 incr = remove_cost + resolution * dnc - \
-                       status.degrees.get(com, 0.) * degc_totw
+                    status.degrees.get(com, 0.) * degc_totw
                 if incr > best_increase:
                     best_increase = incr
                     best_com = com
@@ -528,6 +665,7 @@ def __one_level(graph, status, weight_key, resolution, random_state, threadpool=
         if new_mod - cur_mod < __MIN:
             break
 
+
 def __neighcom(node, graph, status, weight_key, threadpool=None):
     """
     Compute the communities in the neighborhood of node in the graph given
@@ -540,14 +678,14 @@ def __neighcom(node, graph, status, weight_key, threadpool=None):
             edge_weight = datas.get(weight_key, 1)
             neighborcom = status.node2com[neighbor]
             weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
-    
+
     # def find_neighbor(neighbor, datas):
     #     if neighbor != node:
     #         edge_weight = datas.get(weight_key, 1)
     #         neighborcom = status.node2com[neighbor]
     #         weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
 
-    # Parallel(n_jobs=2, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())    
+    # Parallel(n_jobs=2, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())
 
 #     def find_neighbor(neighbor, datas):
 #         if neighbor != node:
@@ -555,8 +693,8 @@ def __neighcom(node, graph, status, weight_key, threadpool=None):
 #             neighborcom = status.node2com[neighbor]
 #             weights[neighborcom] = weights.get(neighborcom, 0) + edge_weight
 
-#     Parallel(n_jobs=8, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())  
-    
+#     Parallel(n_jobs=8, require='sharedmem')(delayed(find_neighbor)(neighbor, datas) for neighbor, datas in graph[node].items())
+
     return weights
 
 
@@ -577,6 +715,7 @@ def __insert(node, com, weight, status):
     status.internals[com] = float(status.internals.get(com, 0.) +
                                   weight + status.loops.get(node, 0.))
 
+
 @timer
 def __modularity(status, resolution, threadpool=None):
     """
@@ -584,14 +723,15 @@ def __modularity(status, resolution, threadpool=None):
     status precomputed
     """
     links = float(status.total_weight)
-    
+
     if links <= 0:
         return 0
-    
-    community_mods = [status.internals.get(community, 0.) * resolution / links -  ((status.degrees.get(community, 0.) / (2. * links)) ** 2) \
-     for community in set(status.node2com.values())]
+
+    community_mods = [status.internals.get(community, 0.) * resolution / links - ((status.degrees.get(community, 0.) / (2. * links)) ** 2)
+                      for community in set(status.node2com.values())]
 
     return sum(community_mods)
+
 
 def __randomize(items, random_state):
     """Returns a List containing a random permutation of items"""
