@@ -14,6 +14,7 @@ import numpy as np
 
 from .community_status import Status
 from utils import timer
+from collections import Counter
 
 __author__ = """Thomas Aynaud (thomas.aynaud@lip6.fr)"""
 #    Copyright (C) 2009 by
@@ -23,6 +24,7 @@ __author__ = """Thomas Aynaud (thomas.aynaud@lip6.fr)"""
 
 __PASS_MAX = -1
 __MIN = 0.0000001
+
 
 
 def check_random_state(seed):
@@ -169,7 +171,8 @@ def best_partition(graph,
                    weight='weight',
                    resolution=1.,
                    randomize=None,
-                   random_state=None):
+                   random_state=None,
+                   n_jobs=None):
     """Compute the partition of the graph nodes which maximises the modularity
     (or try..) using the Louvain heuristices
 
@@ -255,7 +258,8 @@ def best_partition(graph,
                                 weight,
                                 resolution,
                                 randomize,
-                                random_state)
+                                random_state,
+                                n_jobs)
     return partition_at_level(dendo, len(dendo) - 1)
 
 
@@ -388,7 +392,8 @@ def generate_dendrogram(graph,
                         weight='weight',
                         resolution=1.,
                         randomize=None,
-                        random_state=None):
+                        random_state=None,
+                        n_jobs=None):
     """Find communities in the graph and return the associated dendrogram
 
     A dendrogram is a tree and each level is a partition of the graph nodes.
@@ -475,7 +480,10 @@ def generate_dendrogram(graph,
 
     current_graph = graph.copy()
     status = Status()
-    threadpool = Parallel(n_jobs=16, require='sharedmem')
+    if n_jobs == None:
+        threadpool = None
+    else:
+        threadpool = Parallel(n_jobs=n_jobs, require='sharedmem')
 
     # paralleled
     status.init(current_graph, weight, part_init, threadpool=threadpool)
@@ -545,31 +553,20 @@ def induced_graph(partition, graph, weight="weight", threadpool=None):
     True
     """
     ret = nx.Graph()
-    ret.add_nodes_from(partition.values())
 
-    # for node1, node2, datas in graph.edges(data=True):
-    #     edge_weight = datas.get(weight, 1)
-    #     com1 = partition[node1]
-    #     com2 = partition[node2]
-    #     w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-    #     ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
-
-    def add_to_graph(node1, node2, datas):
-        edge_weight = datas.get(weight, 1)
-        com1 = partition[node1]
-        com2 = partition[node2]
-        w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
-        # ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
-        return (com1, com2, w_prec + edge_weight)
-
-    if threadpool is None:
-        result = Parallel(n_jobs=8, require='sharedmem')(delayed(add_to_graph)(
-            node1, node2, datas) for node1, node2, datas in graph.edges(data=True))
-    else:
-        result = threadpool(delayed(add_to_graph)(node1, node2, datas)
-                            for node1, node2, datas in graph.edges(data=True))
-    for row in result:
-        ret.add_edge(row[0], row[1], weight=row[2])
+    # list comprehension or vectorize
+    edges = [(partition[node1], partition[node2]) for node1, node2 in graph.edges()]
+    edges = [(min(u,v), max(u,v)) for u, v in edges]
+    edges = [(*u, {weight:v}) for u, v in Counter(edges).items()]
+    ret.add_edges_from(edges)
+    
+    # sequential
+#     for node1, node2, datas in graph.edges(data=True):
+#         edge_weight = datas.get(weight, 1)
+#         com1 = partition[node1]
+#         com2 = partition[node2]
+#         w_prec = ret.get_edge_data(com1, com2, {weight: 0}).get(weight, 1)
+#         ret.add_edge(com1, com2, **{weight: w_prec + edge_weight})
 
     return ret
 
@@ -665,14 +662,13 @@ def __one_level(graph, status, weight_key, resolution, random_state, threadpool=
         if new_mod - cur_mod < __MIN:
             break
 
-
 def __neighcom(node, graph, status, weight_key, threadpool=None):
     """
     Compute the communities in the neighborhood of node in the graph given
     with the decomposition node2com
     """
     weights = {}
-
+    
     for neighbor, datas in graph[node].items():
         if neighbor != node:
             edge_weight = datas.get(weight_key, 1)

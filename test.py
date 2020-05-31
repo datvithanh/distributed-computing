@@ -2,10 +2,11 @@ import time
 if __name__ == "__main__":
     from graph.loader import load_raw_graph
     from graph.partition.louvain import *
-    from community.parallel_2 import best_partition
-    # from community.sequential import best_partition
+    from community.parallel import best_partition
+#     from community.sequential import best_partition
 
-    g = load_raw_graph('data/twitter/egos/12831.edges')
+#     g = load_raw_graph('data/twitter/egos/12831.edges')
+    g = load_raw_graph('data/twitter/com-dblp.ungraph.txt')
     print(f'g has {len(g)} nodes')
 
     start = time.time()
