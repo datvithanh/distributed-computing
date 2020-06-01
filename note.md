@@ -2,7 +2,9 @@
 
 ## `community_louvain`
 
-1. `induced_graph`:
+1. `induced_graph`
 - Ghép dần các community để tạo thành các graph mới. Graph sau phụ thuộc vào kết quả graph trước => không song song được.
+2. `_neighcom`
+
 
 ## `community_status`
